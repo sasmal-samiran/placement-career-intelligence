@@ -1,0 +1,338 @@
+                         AI-POWERED PLACEMENT INTELLIGENCE SYSTEM
+
++--------------------------------------------------------------------------------+
+|                                 USERS                                          |
+| Student | Faculty | Placement Cell | Administrator                             |
++--------------------------------------------------------------------------------+
+                                        |
+                                        v
++--------------------------------------------------------------------------------+
+|                           PRESENTATION LAYER                                   |
+|                                                                                |
+| React.js / Next.js                                                             |
+| • Login & Registration                                                         |
+| • Student Dashboard                                                            |
+| • Faculty Dashboard                                                            |
+| • Placement Dashboard                                                          |
+| • Admin Dashboard                                                              |
+| • AI Career Mentor Interface                                                   |
+| • Reports & Analytics                                                          |
++--------------------------------------------------------------------------------+
+                                        |
+                                   HTTPS / REST API
+                                        |
+                                        v
++--------------------------------------------------------------------------------+
+|                           AUTHENTICATION LAYER                                 |
+|                                                                                |
+| JWT Authentication                                                             |
+| Role-Based Access Control (RBAC)                                               |
+| Session Management                                                             |
+| Password Encryption (BCrypt)                                                   |
+| Refresh Token                                                                  |
++--------------------------------------------------------------------------------+
+                                        |
+                                        v
++--------------------------------------------------------------------------------+
+|                           API GATEWAY (FastAPI)                                |
+|                                                                                |
+| API Routing                                                                    |
+| Request Validation                                                             |
+| Authentication Middleware                                                      |
+| Authorization Middleware                                                       |
+| Exception Handling                                                             |
+| Rate Limiting                                                                  |
++--------------------------------------------------------------------------------+
+                                        |
+                                        v
++--------------------------------------------------------------------------------+
+|                    STUDENT INTELLIGENCE PROFILE ENGINE                         |
+|                                                                                |
+| Student Profile Management                                                     |
+| Data Validation                                                                |
+| Data Preprocessing                                                             |
+| Feature Engineering                                                            |
+| Resume Analysis                                                                |
+| Skill Profiling                                                                |
+| Readiness Score Generation                                                     |
+| Continuous Profile Update                                                      |
++--------------------------------------------------------------------------------+
+                                        |
+                 +----------------------+------------------------+
+                 |                      |                        |
+                 v                      v                        v
+
+      +-------------------+   +-------------------+   +---------------------+
+      | Placement         |   | Explainable AI   |   | Skill Gap Analysis  |
+      | Prediction Model  |   | SHAP / LIME      |   | Recommendation      |
+      +-------------------+   +-------------------+   +---------------------+
+                 |                      |                        |
+                 +----------------------+------------------------+
+                                        |
+                                        v
++--------------------------------------------------------------------------------+
+|                    COUNTERFACTUAL SIMULATION ENGINE                            |
+|                                                                                |
+| What-if Analysis                                                               |
+| Skill Improvement Simulation                                                   |
+| Placement Probability Simulation                                               |
++--------------------------------------------------------------------------------+
+                                        |
+                                        v
++--------------------------------------------------------------------------------+
+|                        AI CAREER MENTOR (LLM)                                  |
+|                                                                                |
+| Personalized Roadmap                                                           |
+| Resume Suggestions                                                             |
+| Company Recommendation                                                         |
+| Interview Preparation                                                          |
+| Career Guidance                                                                |
++--------------------------------------------------------------------------------+
+                                        |
+                                        v
++--------------------------------------------------------------------------------+
+|                           ANALYTICS & REPORTING                                |
+|                                                                                |
+| Student Dashboard                                                              |
+| Faculty Dashboard                                                              |
+| Placement Cell Dashboard                                                       |
+| Admin Dashboard                                                                |
+| Reports & Visual Analytics                                                     |
++--------------------------------------------------------------------------------+
+                                        |
+                                        v
++--------------------------------------------------------------------------------+
+|                           DATA STORAGE LAYER                                   |
+|                                                                                |
+| PostgreSQL | MongoDB | Vector Database | Redis Cache | File Storage            |
++--------------------------------------------------------------------------------+
+
+
+
+1. Functional Requirements
+
+1.1 User Management
+User registration and login
+JWT-based authentication
+Role-Based Access Control (RBAC)
+Password reset functionality
+Profile management
+Session management
+Admin user management
+
+1.2 Student Profile Management
+Create and update student profiles
+Store personal and academic information
+Upload resumes
+Upload certifications
+Add internships
+Add projects
+Store coding platform profiles
+Track semester-wise performance
+Maintain placement history
+
+1.3 Data Processing
+Validate uploaded data
+Clean inconsistent data
+Handle missing values
+Normalize and transform features
+Generate machine learning features
+Calculate readiness indicators
+
+1.4 Resume Analysis
+Parse PDF/DOC resumes
+Extract technical skills
+Extract education details
+Extract projects
+Extract internships
+Extract certifications
+Calculate resume quality score
+
+1.5 Skill Profiling
+Assess technical skills
+Assess aptitude performance
+Assess communication skills
+Generate skill profile
+Compare skills with company requirements
+
+1.6 Placement Prediction
+Predict placement probability
+Predict placement readiness score
+Predict company tier suitability
+Predict expected salary/package range
+Predict placement risk category
+
+1.7 Explainable AI Module
+Explain prediction results
+Display feature importance
+Identify positive contributing factors
+Identify negative contributing factors
+Visualize SHAP explanations
+
+1.8 Skill Gap Analysis
+Identify missing technical skills
+Identify weak academic areas
+Compare profile with placement requirements
+Recommend improvement areas
+
+1.9 Counterfactual Simulation
+Perform "What-if" analysis
+Simulate improvement scenarios
+Estimate placement probability after improvements
+Compare multiple scenarios
+
+1.10 AI Career Mentor
+Provide personalized career guidance
+Recommend learning roadmap
+Recommend certifications
+Suggest projects
+Suggest companies
+Generate interview preparation plans
+Answer career-related queries using an LLM
+
+1.11 Dashboards & Analytics
+Student Dashboard
+Placement readiness score
+Placement probability
+Resume score
+Skill radar
+Recommendations
+Progress tracking
+Faculty Dashboard
+Student performance overview
+At-risk student identification
+Batch performance analytics
+Student progress monitoring
+Placement Cell Dashboard
+Placement statistics
+Company-wise analytics
+Branch-wise analytics
+Placement trends
+Eligible student lists
+Admin Dashboard
+User management
+System configuration
+Audit logs
+Analytics reports
+
+1.12 Reports
+Export student reports
+Export placement reports
+Generate PDF reports
+Generate Excel reports
+Download analytics
+
+1.13 Notification System
+Email notifications
+Placement alerts
+Interview reminders
+Profile completion reminders
+Recommendation updates
+
+1.14 API Services
+RESTful APIs
+Secure API access
+Request validation
+Response validation
+Error handling
+
+
+2. Non-Functional Requirements
+Performance
+API response time < 500 ms (excluding ML inference)
+ML inference time < 3 seconds
+Support concurrent users
+Efficient database queries
+Security
+HTTPS communication
+JWT authentication
+RBAC authorization
+BCrypt password hashing
+Input validation
+SQL injection protection
+XSS protection
+CSRF protection
+Rate limiting
+Audit logging
+Reliability
+99%+ system availability
+Automatic error recovery
+Database backup
+Fault tolerance
+Scalability
+Modular microservice-ready architecture
+Horizontal API scaling
+Independent ML service deployment
+Redis caching support
+Maintainability
+Modular backend services
+API documentation
+Logging and monitoring
+Version control
+Automated testing
+Usability
+Responsive web interface
+Simple navigation
+Role-specific dashboards
+Accessible design
+Compatibility
+Modern web browsers (Chrome, Edge, Firefox, Safari)
+Desktop and tablet support
+REST API integration with third-party systems
+
+
+3. Hardware Requirements
+Server
+CPU: Quad-core or higher
+RAM: 16 GB minimum (32 GB recommended for ML workloads)
+Storage: 500 GB SSD minimum
+GPU: NVIDIA CUDA-enabled GPU recommended for model training (optional for deployment if inference load is low)
+Client
+Modern web browser
+Stable internet connection
+Minimum 4 GB RAM
+Screen resolution of at least 1366×768
+
+
+4. Software Requirements
+Frontend
+React.js or Next.js
+TypeScript
+Tailwind CSS
+Axios
+Chart.js or Recharts
+Backend
+FastAPI
+Python 3.11+
+Pydantic
+SQLAlchemy
+Alembic
+Celery (optional for background jobs)
+AI/ML
+PyTorch
+Scikit-learn
+SHAP
+LIME
+Pandas
+NumPy
+LangChain (for LLM orchestration)
+Databases & Storage
+PostgreSQL
+MongoDB
+Redis
+FAISS or Pinecone (vector database)
+Local or cloud file storage (e.g., AWS S3)
+Deployment
+Docker
+Nginx
+GitHub Actions (CI/CD)
+Linux (Ubuntu Server)
+
+5. External Integrations (Optional)
+GitHub API (project analysis)
+LeetCode / GeeksforGeeks / HackerRank profile import (where supported)
+Email service (SMTP or SendGrid)
+SMS service (Twilio or equivalent)
+LLM provider (OpenAI, Anthropic, or open-source models via Ollama/vLLM)
+College ERP APIs (student records)
+Resume parsing libraries or services
