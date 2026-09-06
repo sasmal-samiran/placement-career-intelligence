@@ -1,2 +1,12 @@
-__pychache__/
+# python
+__pycache__/
 *.pyc
+
+# environments
+venv/
+.env
+
+# extra
+datasets/
+test/
+website/
