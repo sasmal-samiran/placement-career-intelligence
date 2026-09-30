@@ -7,6 +7,6 @@ venv/
 .env
 
 # extra
-datasets/
 test/
 website/
+models/
