@@ -1,0 +1,18 @@
+=== Evaluation Metrics ===
+
+Confusion Matrix:
+[[2476	762]
+ [2695	7067]]
+
+Classification Report:
+              precision    recall  f1-score   support
+
+           0     0.4788    0.7647    0.5889      3238
+           1     0.9027    0.7239    0.8035      9762
+
+    accuracy                         0.7341     13000
+   macro avg     0.6907    0.7443    0.6962     13000
+weighted avg     0.7971    0.7341    0.7500     13000
+
+ROC-AUC Score: 0.8185
+PR-AUC Score:  0.9204

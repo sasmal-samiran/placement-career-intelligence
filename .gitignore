@@ -9,4 +9,4 @@ venv/
 # extra
 test/
 website/
-models/
+*.joblib
