@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
-from schemas.resume import Skills
+from app.schemas.resume import Skills
 
 
 class SkillNode(BaseModel):

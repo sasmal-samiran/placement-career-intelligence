@@ -2,10 +2,10 @@ from typing import Any, Dict, List, Optional, Union
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-from schemas.resume import Skills
-from schemas.skill_graph import SkillGapAnalysis, SkillGraphData
-from services.llm.client import groq_client
-from services.llm.prompts import format_skill_gap_messages
+from app.schemas.resume import Skills
+from app.schemas.skill_graph import SkillGapAnalysis, SkillGraphData
+from app.services.llm.client import groq_client
+from app.services.llm.prompts import format_skill_gap_messages
 
 
 class SkillGraphService:

@@ -120,8 +120,8 @@ class PredictionService:
             "LinkedIn_Profile": data.linkedIn_profile,
             **features
         }])
-
-        model = joblib.load(os.path.join(Path('__file__').resolve().parent.parent,r"models\RandomForestClassifier.joblib"))
+        model_path = (Path(__file__).resolve().parents[2]/ "models"/ "RandomForestClassifier.joblib")
+        model = joblib.load(model_path)
         # pred = model.predict(new_data)
         prob = model.predict_proba(new_data)
 

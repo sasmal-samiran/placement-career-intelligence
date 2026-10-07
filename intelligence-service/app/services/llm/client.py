@@ -2,7 +2,7 @@ import json
 import groq
 from groq import AsyncGroq
 from fastapi import HTTPException
-from config import settings
+from app.config import settings
 
 
 class GroqClient:

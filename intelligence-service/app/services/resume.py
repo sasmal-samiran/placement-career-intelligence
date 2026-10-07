@@ -4,9 +4,9 @@ from docx import Document
 from fastapi import UploadFile, HTTPException
 from pydantic import ValidationError
 
-from schemas.resume import ResumeResponse
-from services.llm.client import groq_client
-from services.llm.prompts import format_resume_extraction_messages
+from app.schemas.resume import ResumeResponse
+from app.services.llm.client import groq_client
+from app.services.llm.prompts import format_resume_extraction_messages
 
 
 class ResumeService:

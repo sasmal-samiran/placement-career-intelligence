@@ -1,12 +1,13 @@
 from typing import Optional
 from fastapi import APIRouter, UploadFile, HTTPException, File, Form
 
-from schemas.prediction import PredictionRequest, PredictionResponse
-from schemas.resume import ResumeResponse
-from schemas.skill_graph import SkillGapAnalysis, SkillGapRequest, SkillGraphData
-from services.prediction import PredictionService
-from services.resume import ResumeService
-from services.skill_graph import SkillGraphService
+from app.schemas.prediction import PredictionRequest, PredictionResponse
+from app.schemas.resume import ResumeResponse
+from app.schemas.skill_graph import SkillGapAnalysis, SkillGapRequest, SkillGraphData
+
+from app.services.prediction import PredictionService
+from app.services.resume import ResumeService
+from app.services.skill_graph import SkillGraphService
 
 router = APIRouter(prefix="/api", tags=["Placement Intelligence"])
 

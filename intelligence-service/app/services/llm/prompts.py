@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List, Optional, Union
-from schemas.resume import ResumeResponse
-from schemas.skill_graph import SkillGapAnalysis
+from app.schemas.resume import ResumeResponse
+from app.schemas.skill_graph import SkillGapAnalysis
 
 RESUME_EXTRACTION_SYSTEM_PROMPT = f"""You are an expert resume parser. Extract candidate information from the resume and return ONLY a JSON object adhering strictly to this JSON Schema:
 {json.dumps(ResumeResponse.model_json_schema())}
