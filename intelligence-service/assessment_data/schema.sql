@@ -23,8 +23,8 @@ CREATE TABLE IF NOT EXISTS questions (
     question_text          TEXT NOT NULL,
     options_json           TEXT NOT NULL CHECK (json_valid(options_json)),
     correct_answer         TEXT NOT NULL,
-    base_marks                  REAL NOT NULL CHECK (base_marks > 0),
-    base_negative_marks         REAL NOT NULL DEFAULT 0 CHECK (base_negative_marks >= 0),
+    base_marks             REAL NOT NULL CHECK (base_marks > 0),
+    base_negative_marks    REAL NOT NULL DEFAULT 0 CHECK (base_negative_marks >= 0),
     explanation            TEXT,
     skill_tags_json        TEXT NOT NULL DEFAULT '[]' CHECK (json_valid(skill_tags_json)),
     estimated_time_seconds INTEGER CHECK (estimated_time_seconds IS NULL OR estimated_time_seconds > 0)
