@@ -22,4 +22,18 @@ class Settings(BaseSettings):
     GROQ_MAX_RETRIES: int = 2
     GROQ_TIMEOUT: float = 60.0
 
+class LeetCodeSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=os.path.join(BASE_DIR, ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+    LEETCODE_API_BASE_URL: str
+
+
 settings = Settings()
+leetcode_settings = LeetCodeSettings()
+
+if __name__ == "__main__":
+    print("\nLeetCode Settings")
+    print(f"LeetCode API Base URL: {leetcode_settings.LEETCODE_API_BASE_URL}")
