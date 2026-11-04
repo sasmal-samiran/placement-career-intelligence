@@ -10,3 +10,14 @@ venv/
 test/
 website/
 extra_models/
+# Node.js projects
+**/node_modules/
+**/build/
+**/dist/
+*.tsbuildinfo
+
+# Local configuration and uploaded files
+.env.*
+!.env.example
+**/uploads/resumes/*
+atlas-credentials.env
