@@ -10,6 +10,7 @@ import Skills from './pages/Skills';
 import Projects from './pages/Projects';
 import Internships from './pages/Internships';
 import Certifications from './pages/Certifications';
+import Assessment from './pages/Assessment';
 import CodingProfile from './pages/CodingProfile';
 import ResumePortfolio from './pages/ResumePortfolio';
 import PlacementPrediction from './pages/PlacementPrediction';
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/projects" element={<Projects />} />
         <Route path="/internships" element={<Internships />} />
         <Route path="/certifications" element={<Certifications />} />
+        <Route path="/assessment" element={<Assessment />} />
         <Route path="/coding" element={<CodingProfile />} />
         <Route path="/resume" element={<ResumePortfolio />} />
         <Route path="/placement" element={<PlacementPrediction />} />

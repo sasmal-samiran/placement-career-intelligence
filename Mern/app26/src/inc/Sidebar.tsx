@@ -10,6 +10,7 @@ const menu = [
   { to: '/projects', icon: 'bi-kanban-fill', label: 'Projects' },
   { to: '/internships', icon: 'bi-building-fill', label: 'Internships' },
   { to: '/certifications', icon: 'bi-patch-check-fill', label: 'Certifications' },
+  { to: '/assessment', icon: 'bi-journal-check', label: 'Skill Assessment' },
   { to: '/coding', icon: 'bi-code-slash', label: 'Coding Profile' },
   { to: '/resume', icon: 'bi-file-earmark-person-fill', label: 'Resume & Portfolio' },
   { to: '/placement', icon: 'bi-bullseye', label: 'Placement Prediction' },
