@@ -1,4 +1,5 @@
 import json
+from typing import Any
 import groq
 from groq import AsyncGroq
 from fastapi import HTTPException
@@ -21,12 +22,17 @@ class GroqClient:
             )
         return self._client
 
-    async def generate(self, messages: list[dict], model: str = None) -> dict:
+    async def generate(
+        self,
+        messages: list[dict],
+        model: str = None,
+        response_format: dict[str, Any] | None = None,
+    ) -> dict:
         try:
             response = await self.client.chat.completions.create(
                 model=model or settings.GROQ_MODEL,
                 messages=messages,
-                response_format={"type": "json_object"},
+                response_format=response_format or {"type": "json_object"},
                 temperature=settings.GROQ_TEMPERATURE,
             )
             return json.loads(response.choices[0].message.content)

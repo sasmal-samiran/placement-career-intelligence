@@ -1,12 +1,17 @@
-from typing import Optional
-from fastapi import APIRouter, UploadFile, HTTPException, File, Form
+from typing import List
+from fastapi import APIRouter, UploadFile, HTTPException, File
+from starlette.concurrency import run_in_threadpool
 
 from schemas.prediction import PredictionRequest, PredictionResponse
 from schemas.resume import ResumeResponse
+from schemas.test_paper import TestPaperRequest, TestPaperResponse
 from schemas.skill_graph import SkillGapAnalysis, SkillGapRequest, SkillGraphData
 from services.prediction import PredictionService
 from services.resume import ResumeService
 from services.skill_graph import SkillGraphService
+from services.test_paper import TestPaperService
+from schemas.duplicate import DuplicateCheckRequest, DuplicateCheckResponse
+from services.duplicate_service import DuplicateDetectionService
 
 router = APIRouter(prefix="/api", tags=["Placement Intelligence"])
 
@@ -49,28 +54,14 @@ async def analyze_skill_gap(request: SkillGapRequest):
         target_job_description=request.target_job_description,
     )
 
+@router.post("/test-paper", response_model=List[TestPaperResponse], summary="Generate questions based on given subject")
+async def analyze_skill_gap(request: TestPaperRequest):
+    return await TestPaperService.generate(request)
 
-# @router.post("/skill-gap/from-resume", response_model=SkillGapAnalysis, summary="Analyze skill gap directly from uploaded resume")
-# async def analyze_skill_gap_from_resume(
-#     file: UploadFile = File(...),
-#     target_role: Optional[str] = Form(None),
-#     target_job_description: Optional[str] = Form(None),
-# ):
-#     """
-#     Upload a resume and specify a target role to perform both resume parsing
-#     and skill gap graph analysis in a single request.
-#     """
-#     resume_data: ResumeResponse = await ResumeService.parse(file)
-#     return await SkillGraphService.analyze_gap(
-#         skills=resume_data.skills,
-#         target_role=target_role,
-#         target_job_description=target_job_description,
-#     )
-
-
-# @router.post("/skill-graph", response_model=SkillGraphData, summary="Generate skill graph for candidate skills")
-# async def generate_skill_graph(request: SkillGapRequest):
-#     """
-#     Generates an interconnected skill knowledge graph (nodes + edges) for the provided skills.
-#     """
-#     return await SkillGraphService.generate_graph(skills=request.skills)
+@router.post(
+    "/duplicate-check",
+    response_model=DuplicateCheckResponse,
+    summary="Check a student record for potential duplicates",
+)
+async def check_duplicate(request: DuplicateCheckRequest) -> DuplicateCheckResponse:
+    return await run_in_threadpool(DuplicateDetectionService.check, request)

@@ -34,6 +34,7 @@ class Project(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     technologies: List[str] = []
+    link: Optional[str] = None
 
 
 class Skills(BaseModel):
