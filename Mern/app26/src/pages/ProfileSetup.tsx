@@ -4,15 +4,28 @@ import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
+const BRANCHES = [
+  { code: 'CSE', name: 'Computer Science and Engineering (CSE)' },
+  { code: 'DS', name: 'Computer Science and Engineering – Data Science (DS)' },
+  { code: 'AIML', name: 'Computer Science and Engineering – Artificial Intelligence and Machine Learning (AIML)' },
+  { code: 'IT', name: 'Information Technology (IT)' },
+  { code: 'CS', name: 'Computer Science and Engineering – Cyber Security (CS)' },
+  { code: 'ECE', name: 'Electronics and Communication Engineering (ECE)' },
+  { code: 'EEE', name: 'Electrical and Electronics Engineering (EEE)' },
+  { code: 'Mechanical', name: 'Mechanical Engineering (Mechanical)' },
+  { code: 'Civil', name: 'Civil Engineering (Civil)' },
+  { code: 'Chemical', name: 'Chemical Engineering (Chemical)' },
+];
+
 type Profile = {
   name: string;
   email: string;
   phone: string;
   dob: string;
-  department: string;
+  branch: string;
+  collegeTier: number;
   university: string;
   currentYear: string;
-  address: string;
   bio: string;
 };
 
@@ -33,7 +46,6 @@ type Certification = {
   name: string;
   issuer: string;
   issueDate: string;
-  credentialUrl: string;
 };
 
 type CodingProfile = {
@@ -56,7 +68,7 @@ type Internship = {
 
 const emptySemester = (): Semester => ({ semester: '', sgpa: '', attendance: '', credits: '' });
 const emptySkill = (): Skill => ({ name: '', category: '', level: '' });
-const emptyCertification = (): Certification => ({ name: '', issuer: '', issueDate: '', credentialUrl: '' });
+const emptyCertification = (): Certification => ({ name: '', issuer: '', issueDate: '' });
 const emptyCodingProfile = (): CodingProfile => ({ platform: '', username: '', url: '', problemsSolved: '', score: '' });
 const emptyInternship = (): Internship => ({ company: '', role: '', description: '', startDate: '', endDate: '', status: '' });
 
@@ -70,10 +82,10 @@ export default function ProfileSetup() {
     email: user?.email || '',
     phone: '',
     dob: '',
-    department: '',
+    branch: '',
+    collegeTier: 3,
     university: '',
     currentYear: '',
-    address: '',
     bio: '',
   });
   const [semesters, setSemesters] = useState<Semester[]>([emptySemester()]);
@@ -106,11 +118,11 @@ export default function ProfileSetup() {
           name: savedProfile.name || current.name,
           email: savedProfile.email || current.email,
           phone: savedProfile.phone || '',
-          dob: savedProfile.dob || '',
-          department: savedProfile.department || '',
+          dob: savedProfile.dob ? String(savedProfile.dob).slice(0, 10) : '',
+          branch: savedProfile.branch || savedProfile.department || '',
+          collegeTier: Number(savedProfile.collegeTier) || 3,
           university: savedProfile.university || '',
-          currentYear: savedProfile.currentYear || '',
-          address: savedProfile.address || '',
+          currentYear: savedProfile.currentYear ? String(savedProfile.currentYear) : '',
           bio: savedProfile.bio || '',
         }));
 
@@ -139,7 +151,6 @@ export default function ProfileSetup() {
             name: item.name || '',
             issuer: item.issuer || '',
             issueDate: item.issueDate || '',
-            credentialUrl: item.credentialUrl || '',
           })));
         }
 
@@ -179,7 +190,7 @@ export default function ProfileSetup() {
     };
   }, []);
 
-  const updateProfile = (field: keyof Profile, value: string) => {
+  const updateProfile = (field: keyof Profile, value: any) => {
     setProfile((current) => ({ ...current, [field]: value }));
   };
 
@@ -341,24 +352,42 @@ export default function ProfileSetup() {
                   <input className="form-control modern-input" type="tel" value={profile.phone} onChange={(event) => updateProfile('phone', event.target.value)} />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label">Date of birth</label>
-                  <input className="form-control modern-input" type="date" value={profile.dob} onChange={(event) => updateProfile('dob', event.target.value)} />
+                  <label className="form-label" htmlFor="date-of-birth">Date of birth</label>
+                  <input id="date-of-birth" className="form-control modern-input" type="date" max={new Date().toISOString().slice(0, 10)} value={profile.dob} onChange={(event) => updateProfile('dob', event.target.value)} />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label">Department</label>
-                  <input className="form-control modern-input" value={profile.department} onChange={(event) => updateProfile('department', event.target.value)} />
+                  <label className="form-label">Branch</label>
+                  <select className="form-select modern-input" value={profile.branch} onChange={(event) => updateProfile('branch', event.target.value)}>
+                    <option value="">Select Branch</option>
+                    {BRANCHES.map((b) => (
+                      <option key={b.code} value={b.code}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">College Tier</label>
+                  <select className="form-select modern-input" value={profile.collegeTier} onChange={(event) => updateProfile('collegeTier', Number(event.target.value))}>
+                    <option value={1}>Tier 1</option>
+                    <option value={2}>Tier 2</option>
+                    <option value={3}>Tier 3</option>
+                  </select>
                 </div>
                 <div className="col-md-6">
                   <label className="form-label">University</label>
                   <input className="form-control modern-input" value={profile.university} onChange={(event) => updateProfile('university', event.target.value)} />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label">Current year</label>
-                  <input className="form-control modern-input" value={profile.currentYear} onChange={(event) => updateProfile('currentYear', event.target.value)} placeholder="e.g. 2nd year" />
-                </div>
-                <div className="col-md-6">
-                  <label className="form-label">Address</label>
-                  <input className="form-control modern-input" value={profile.address} onChange={(event) => updateProfile('address', event.target.value)} />
+                  <label className="form-label">Study year</label>
+                  <select className="form-select modern-input" value={profile.currentYear} onChange={(event) => updateProfile('currentYear', event.target.value)}>
+                    <option value="">Select Year</option>
+                    {[1, 2, 3, 4, 5, 6].map((year) => (
+                      <option key={year} value={String(year)}>
+                        Year {year}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="col-12">
                   <label className="form-label">About you</label>
@@ -467,21 +496,17 @@ export default function ProfileSetup() {
               <div className="d-grid gap-3 mb-4">
                 {certifications.map((item, index) => (
                   <div className="row g-3 border rounded p-3 mx-0" key={`certification-${index}`}>
-                    <div className="col-md-3">
+                    <div className="col-md-4">
                       <label className="form-label">Name</label>
                       <input className="form-control modern-input" value={item.name} onChange={(event) => updateCertification(index, 'name', event.target.value)} />
                     </div>
-                    <div className="col-md-3">
+                    <div className="col-md-4">
                       <label className="form-label">Issuer</label>
                       <input className="form-control modern-input" value={item.issuer} onChange={(event) => updateCertification(index, 'issuer', event.target.value)} />
                     </div>
-                    <div className="col-md-2">
+                    <div className="col-md-3">
                       <label className="form-label">Issue date</label>
                       <input className="form-control modern-input" type="date" value={item.issueDate} onChange={(event) => updateCertification(index, 'issueDate', event.target.value)} />
-                    </div>
-                    <div className="col-md-3">
-                      <label className="form-label">Credential URL</label>
-                      <input className="form-control modern-input" type="url" value={item.credentialUrl} onChange={(event) => updateCertification(index, 'credentialUrl', event.target.value)} />
                     </div>
                     <div className="col-md-1 d-flex align-items-end">
                       <button className="table-icon mb-2" type="button" aria-label={`Remove certification ${index + 1}`} onClick={() => setCertifications((current) => current.filter((_, itemIndex) => itemIndex !== index))}>

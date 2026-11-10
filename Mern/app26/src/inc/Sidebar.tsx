@@ -5,7 +5,6 @@ const menu = [
   { to: '/dashboard', icon: 'bi-grid-1x2-fill', label: 'Dashboard' },
   { to: '/profile', icon: 'bi-person-badge-fill', label: 'Student Profile' },
   { to: '/academic', icon: 'bi-bar-chart-fill', label: 'Academic Performance' },
-  { to: '/attendance', icon: 'bi-calendar2-check-fill', label: 'Attendance' },
   { to: '/skills', icon: 'bi-lightning-charge-fill', label: 'Skills' },
   { to: '/projects', icon: 'bi-kanban-fill', label: 'Projects' },
   { to: '/internships', icon: 'bi-building-fill', label: 'Internships' },

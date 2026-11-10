@@ -1,88 +1,219 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import axios from 'axios';
 import Layout from '../components/Layout';
+import Toast from '../components/Toast';
+import api from '../services/api';
+
+type PredictionData = {
+  probability: number;
+  prediction: string;
+  factors: Array<{ name: string; score: number }>;
+  createdAt: string | null;
+};
+
+type ProfilePreview = {
+  branch?: string;
+  collegeTier?: number;
+  cgpa?: number;
+  attendance?: number;
+  dsaSolved?: number;
+};
 
 export default function PlacementPrediction() {
-  const [score, setScore] = useState(84);
-  const [loading, setLoading] = useState(false);
+  const [prediction, setPrediction] = useState<PredictionData | null>(null);
+  const [profile, setProfile] = useState<ProfilePreview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState('');
 
-  const predict = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setScore((prev) => Math.min(99, prev + 2));
-      setLoading(false);
-    }, 900);
+  useEffect(() => {
+    let active = true;
+
+    Promise.allSettled([
+      api.get('/placement'),
+      api.get('/students/profile'),
+      api.get('/dashboard'),
+      api.get('/coding'),
+    ]).then(([predRes, profRes, dashRes, codingRes]) => {
+      if (!active) return;
+
+      if (predRes.status === 'fulfilled') {
+        setPrediction(predRes.value.data?.data ?? null);
+      }
+      const st = profRes.status === 'fulfilled' ? profRes.value.data?.data : {};
+      const ds = dashRes.status === 'fulfilled' ? dashRes.value.data?.data?.stats : {};
+      const cd = codingRes.status === 'fulfilled' ? codingRes.value.data?.data?.profiles : [];
+
+      const totalDsa = Array.isArray(cd)
+        ? cd.reduce((sum: number, p: any) => sum + Number(p.problemsSolved || 0), 0)
+        : 0;
+
+      setProfile({
+        branch: st?.branch || st?.department || 'Not added',
+        collegeTier: st?.collegeTier || 3,
+        cgpa: ds?.cgpa,
+        attendance: ds?.attendance,
+        dsaSolved: totalDsa,
+      });
+    }).catch(() => {
+      if (active) setError('Could not load your placement data.');
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const runPrediction = async () => {
+    setRunning(true);
+    setError('');
+
+    try {
+      const response = await api.post('/placement', {});
+      setPrediction(response.data.data);
+    } catch (requestError) {
+      const message = axios.isAxiosError(requestError)
+        ? requestError.response?.data?.message
+        : null;
+      setError(
+        typeof message === 'string'
+          ? message
+          : 'Could not run placement prediction. Please check that your profile has branch and date of birth.'
+      );
+    } finally {
+      setRunning(false);
+    }
   };
 
-  const factors = [
-    ['Academic performance', 91],
-    ['Technical skills', 84],
-    ['Projects', 88],
-    ['Coding profile', 82],
-    ['Resume quality', 86],
-    ['Communication', 78],
-  ];
+  const improvementAreas = prediction?.factors
+    .slice()
+    .sort((first, second) => first.score - second.score)
+    .slice(0, 3);
 
   return (
     <Layout
       title="Placement Prediction"
-      subtitle="Estimate readiness using your academic, skill and profile data."
+      subtitle="AI-driven placement probability and factor breakdown evaluated from your database profile."
     >
-      <div className="prediction-hero">
+      <Toast message={error} type="error" onClose={() => setError('')} />
+
+      {/* Hero Prediction Section */}
+      <div className="prediction-hero mb-4">
         <div>
           <span className="eyebrow">AI PLACEMENT ENGINE</span>
-          <h2>Your current placement probability</h2>
+          <h2>Your placement probability</h2>
           <p>
-            Based on your latest academic performance, skills, projects, coding and resume profile.
+            The model analyzes your complete academic records, skills, projects, and coding stats stored in your profile.
           </p>
-          <button className="primary-btn" onClick={predict} disabled={loading}>
-            {loading ? 'Analyzing...' : 'Run new prediction'}
-            <i className="bi bi-arrow-repeat" />
+          <button className="primary-btn" onClick={runPrediction} disabled={running || loading}>
+            {running ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" />
+                Analyzing Profile...
+              </>
+            ) : (
+              <>
+                Run Placement Prediction <i className="bi bi-arrow-repeat" />
+              </>
+            )}
           </button>
         </div>
 
-        <div className="prediction-score">
-          <strong>{score}%</strong>
-          <span>High probability</span>
+        <div className="prediction-score" aria-live="polite">
+          <strong>{prediction ? `${prediction.probability}%` : loading ? '...' : '—'}</strong>
+          <span>{prediction?.prediction ? `${prediction.prediction} Chance` : 'No prediction yet'}</span>
         </div>
       </div>
 
-      <div className="row g-4 mt-1">
+      {/* Database Context Summary */}
+      <div className="panel-card mb-4">
+        <div className="panel-head mb-3">
+          <div>
+            <h5>Evaluated Profile Metrics</h5>
+            <small>Live records fetched directly from your database used for prediction</small>
+          </div>
+        </div>
+        <div className="row g-3">
+          <div className="col-6 col-md-3">
+            <div className="border rounded p-3 text-center bg-light">
+              <small className="text-muted d-block">Branch</small>
+              <strong className="fs-6">{profile?.branch || 'CSE'}</strong>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="border rounded p-3 text-center bg-light">
+              <small className="text-muted d-block">College Tier</small>
+              <strong className="fs-6">Tier {profile?.collegeTier || 3}</strong>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="border rounded p-3 text-center bg-light">
+              <small className="text-muted d-block">Current CGPA</small>
+              <strong className="fs-6">{profile?.cgpa ? Number(profile.cgpa).toFixed(2) : '7.00'}</strong>
+            </div>
+          </div>
+          <div className="col-6 col-md-3">
+            <div className="border rounded p-3 text-center bg-light">
+              <small className="text-muted d-block">DSA Solved</small>
+              <strong className="fs-6">{profile?.dsaSolved ?? 0} Problems</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Metrics & Focus Areas */}
+      <div className="row g-4">
         <div className="col-lg-7">
           <div className="panel-card">
             <div className="panel-head">
               <div>
-                <h5>Readiness factors</h5>
-                <small>What is influencing your prediction</small>
+                <h5>Profile readiness metrics</h5>
+                <small>Factor breakdown scored by the model</small>
               </div>
             </div>
 
-            {factors.map(([label, value]) => (
-              <div className="factor" key={label}>
-                <div>
-                  <span>{label}</span>
-                  <strong>{value}%</strong>
+            {prediction?.factors.length ? (
+              prediction.factors.map((factor) => (
+                <div className="factor" key={factor.name}>
+                  <div>
+                    <span>{factor.name}</span>
+                    <strong>{factor.score}%</strong>
+                  </div>
+                  <div className="progress">
+                    <div style={{ width: `${factor.score}%` }} />
+                  </div>
                 </div>
-                <div className="progress">
-                  <div style={{ width: `${value}%` }} />
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-muted mb-0 py-3 text-center">
+                {loading ? 'Loading your prediction...' : 'Click "Run Placement Prediction" to evaluate your readiness.'}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="col-lg-5">
           <div className="panel-card">
-            <h5>Expected salary range</h5>
-            <div className="salary">₹5.5L <span>–</span> ₹8.5L</div>
-            <p>Estimated annual package based on your current profile.</p>
-            <hr />
-            <h6>Top improvement areas</h6>
-            <ul className="simple-list">
-              <li><i className="bi bi-arrow-up-circle" /> Communication</li>
-              <li><i className="bi bi-arrow-up-circle" /> Advanced DSA</li>
-              <li><i className="bi bi-arrow-up-circle" /> System Design</li>
-            </ul>
-            <a href="/mentor" className="outline-btn w-100 text-center">Improve with AI Mentor</a>
+            <h5>Recommended Focus Areas</h5>
+            <p className="text-muted small">Target these specific areas to raise your placement probability score.</p>
+            {improvementAreas?.length ? (
+              <ul className="simple-list mb-4">
+                {improvementAreas.map((factor) => (
+                  <li key={factor.name}>
+                    <i className="bi bi-arrow-up-circle text-primary me-2" />
+                    <strong>{factor.name}</strong> ({factor.score}%)
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-muted mb-4">Run a prediction to generate tailored recommendations.</p>
+            )}
+            <a href="/mentor" className="outline-btn w-100 text-center d-block">
+              <i className="bi bi-chat-dots me-2" />
+              Improve with AI Career Mentor
+            </a>
           </div>
         </div>
       </div>

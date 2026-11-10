@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 
 const certificationSchema = new mongoose.Schema(
     {
-
         student: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Student",
@@ -11,28 +10,47 @@ const certificationSchema = new mongoose.Schema(
 
         name: {
             type: String,
-            required: true
+            required: true,
+            trim: true
         },
 
-        issuer: String,
+        issuer: {
+            type: String,
+            default: "",
+            trim: true
+        },
 
-        issueDate: String,
+        issueDate: {
+            type: String,
+            default: "",
+            trim: true
+        },
 
-        year: String,
+        year: {
+            type: String,
+            default: "",
+            trim: true
+        },
 
-        icon: String,
+        certificate: {
+            type: String,
+            default: "",
+            trim: true
+        },
 
-        credentialId: String,
-
-        credentialUrl: String
-
+        validated: {
+            type: Boolean,
+            default: false
+        }
     },
     {
         timestamps: true
     }
 );
 
-module.exports = mongoose.model(
-    "Certification",
-    certificationSchema
-);
+// Validation logic: must have certificate file
+certificationSchema.pre("save", function() {
+    this.validated = Boolean(this.certificate && this.certificate.trim());
+});
+
+module.exports = mongoose.model("Certification", certificationSchema);

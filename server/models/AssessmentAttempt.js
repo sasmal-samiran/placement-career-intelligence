@@ -9,6 +9,16 @@ const assessmentAttemptSchema = new mongoose.Schema(
             index: true,
         },
 
+        session: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "AssessmentSession",
+        },
+
+        level: {
+            type: String,
+            default: "intermediate",
+        },
+
         testId: {
             type: String,
             default: "diag_comprehensive",

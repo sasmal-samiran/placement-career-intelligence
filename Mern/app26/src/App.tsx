@@ -5,8 +5,8 @@ import ProfileSetup from './pages/ProfileSetup';
 import Dashboard from './pages/Dashboard';
 import StudentProfile from './pages/StudentProfile';
 import AcademicPerformance from './pages/AcademicPerformance';
-import Attendance from './pages/Attendance';
 import Skills from './pages/Skills';
+import ConductTest from './pages/ConductTest';
 import Projects from './pages/Projects';
 import Internships from './pages/Internships';
 import Certifications from './pages/Certifications';
@@ -29,8 +29,8 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/profile" element={<StudentProfile />} />
         <Route path="/academic" element={<AcademicPerformance />} />
-        <Route path="/attendance" element={<Attendance />} />
         <Route path="/skills" element={<Skills />} />
+        <Route path="/conduct-test" element={<ConductTest />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/internships" element={<Internships />} />
         <Route path="/certifications" element={<Certifications />} />

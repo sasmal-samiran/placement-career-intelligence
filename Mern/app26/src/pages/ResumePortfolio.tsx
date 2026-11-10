@@ -1,12 +1,52 @@
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import axios from 'axios';
 import Layout from '../components/Layout';
+import Toast from '../components/Toast';
 import api from '../services/api';
+
+type ResumeData = {
+  fileName?: string;
+  originalName?: string;
+  fileUrl?: string;
+  uploadedAt?: string;
+  portfolioUrl?: string;
+};
+
+type JDCompareResult = {
+  targetRole: string;
+  resumeAnalyzed: string;
+  matchScore: number;
+  matchingSkills: string[];
+  missingSkills: string[];
+  recommendations: string[];
+  summary: string;
+  isPlaceholder?: boolean;
+};
 
 export default function ResumePortfolio() {
   const [tab, setTab] = useState<'resume' | 'portfolio'>('resume');
   const [profile, setProfile] = useState<any>(null);
-  const [resume, setResume] = useState<any>(null);
+  const [resume, setResume] = useState<ResumeData | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Toast state
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'warning'>('success');
+
+  // JD Matcher State
+  const [targetRole, setTargetRole] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
+  const [useExistingResume, setUseExistingResume] = useState(true);
+  const [newJdFile, setNewJdFile] = useState<File | null>(null);
+  const [comparing, setComparing] = useState(false);
+  const [jdResult, setJdResult] = useState<JDCompareResult | null>(null);
+
+  // Portfolio State
+  const [portfolioUrlInput, setPortfolioUrlInput] = useState('');
+  const [savedPortfolioUrl, setSavedPortfolioUrl] = useState('');
+  const [savingPortfolio, setSavingPortfolio] = useState(false);
+  const [viewportMode, setViewportMode] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [iframeKey, setIframeKey] = useState(0);
 
   const loadData = async () => {
     try {
@@ -15,8 +55,25 @@ export default function ResumePortfolio() {
         api.get('/resume'),
       ]);
 
-      setProfile(profileRes.data?.data || null);
-      setResume(resumeRes.data?.data || null);
+      const prof = profileRes.data?.data || null;
+      const resData = resumeRes.data?.data || null;
+
+      setProfile(prof);
+      setResume(resData);
+
+      const existingUrl =
+        resData?.portfolioUrl ||
+        prof?.portfolio?.url ||
+        prof?.socialLinks?.website ||
+        '';
+
+      setSavedPortfolioUrl(existingUrl);
+      setPortfolioUrlInput(existingUrl);
+      if (resData?.fileUrl) {
+        setUseExistingResume(true);
+      } else {
+        setUseExistingResume(false);
+      }
     } catch (error) {
       console.warn('Resume data not available yet', error);
     }
@@ -26,6 +83,12 @@ export default function ResumePortfolio() {
     loadData();
   }, []);
 
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
+  };
+
+  // Upload Resume (Left Side)
   const handleResumeUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -40,460 +103,584 @@ export default function ResumePortfolio() {
       });
 
       setResume(response.data?.data || null);
+      showToast(response.data?.message || 'Resume uploaded successfully!', 'success');
       await loadData();
-    } catch (error) {
-      console.error('CV upload failed', error);
-      alert('Unable to upload and scrape CV. Please check file format (PDF, DOCX) and size (under 5MB).');
+    } catch (uploadError) {
+      const msg = axios.isAxiosError(uploadError)
+        ? uploadError.response?.data?.message
+        : 'Unable to upload resume. Please check file format and size.';
+      showToast(msg || 'Resume upload failed', 'error');
     } finally {
       setUploading(false);
       event.target.value = '';
     }
   };
 
-  const parsed = resume?.parsedData;
-  const studentName = parsed?.personal_info?.name || profile?.name || 'Student Name';
-  const initials = studentName
-    .split(' ')
-    .filter(Boolean)
-    .map((part: string) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase() || 'CP';
+  // Compare Resume with Job Description (Right Side)
+  const handleCompareJD = async (e: FormEvent) => {
+    e.preventDefault();
 
-  // Extracted skills
-  const skillsObj = parsed?.skills || {};
-  const progLangs = skillsObj.programming_languages || [];
-  const frameworks = skillsObj.frameworks || [];
-  const databases = skillsObj.databases || [];
-  const tools = skillsObj.tools || [];
-  const cloud = skillsObj.cloud || [];
-  const allParsedSkills = [...progLangs, ...frameworks, ...databases, ...tools, ...cloud];
-  const displaySkills = allParsedSkills.length > 0
-    ? allParsedSkills
-    : (profile?.skills || []).map((s: any) => s.name);
+    if (!jobDescription.trim()) {
+      showToast('Please enter a job description to compare.', 'warning');
+      return;
+    }
+
+    if (!useExistingResume && !newJdFile) {
+      showToast('Please select a CV file to compare with this job description.', 'warning');
+      return;
+    }
+
+    if (useExistingResume && !resume?.fileUrl) {
+      showToast('No existing resume found. Please upload a resume first or choose "Upload a new CV".', 'warning');
+      return;
+    }
+
+    setComparing(true);
+    setJdResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('jobDescription', jobDescription);
+      formData.append('targetRole', targetRole);
+      formData.append('useExistingResume', String(useExistingResume));
+
+      if (!useExistingResume && newJdFile) {
+        formData.append('resume', newJdFile);
+      }
+
+      const response = await api.post('/resume/compare-jd', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (response.data?.data) {
+        setJdResult(response.data.data);
+        showToast(response.data.message || 'Comparison completed successfully!', 'success');
+      }
+    } catch (err) {
+      const msg = axios.isAxiosError(err)
+        ? err.response?.data?.message
+        : 'Failed to analyze resume against job description.';
+      showToast(msg || 'JD comparison failed', 'error');
+    } finally {
+      setComparing(false);
+    }
+  };
+
+  // Save Portfolio URL
+  const handleSavePortfolio = async (e: FormEvent) => {
+    e.preventDefault();
+    let url = portfolioUrlInput.trim();
+
+    if (!url) {
+      showToast('Please enter a valid website URL.', 'warning');
+      return;
+    }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `https://${url}`;
+    }
+
+    setSavingPortfolio(true);
+    try {
+      await api.put('/resume/portfolio', { portfolioUrl: url });
+      setSavedPortfolioUrl(url);
+      setPortfolioUrlInput(url);
+      setIframeKey((k) => k + 1);
+      showToast('Portfolio website URL saved successfully!', 'success');
+    } catch (err) {
+      const msg = axios.isAxiosError(err)
+        ? err.response?.data?.message
+        : 'Failed to save portfolio URL.';
+      showToast(msg || 'Portfolio update failed', 'error');
+    } finally {
+      setSavingPortfolio(false);
+    }
+  };
+
+  const fullResumeUrl = resume?.fileUrl
+    ? resume.fileUrl.startsWith('http')
+      ? resume.fileUrl
+      : `http://localhost:5000${resume.fileUrl}`
+    : null;
 
   return (
-    <Layout title="Resume & Portfolio" subtitle="Present your strongest professional story.">
+    <Layout title="Resume & Portfolio" subtitle="Manage your CV, test JD alignment, and showcase your live portfolio.">
+      <Toast message={toastMessage} type={toastType} onClose={() => setToastMessage('')} />
+
       <div className="tab-switch mb-4">
-        <button className={tab === 'resume' ? 'active' : ''} onClick={() => setTab('resume')}>
-          <i className="bi bi-file-earmark-person" /> Resume
+        <button
+          type="button"
+          className={tab === 'resume' ? 'active' : ''}
+          onClick={() => setTab('resume')}
+        >
+          <i className="bi bi-file-earmark-person me-2" />
+          Resume & JD Matcher
         </button>
-        <button className={tab === 'portfolio' ? 'active' : ''} onClick={() => setTab('portfolio')}>
-          <i className="bi bi-window-stack" /> Portfolio
+        <button
+          type="button"
+          className={tab === 'portfolio' ? 'active' : ''}
+          onClick={() => setTab('portfolio')}
+        >
+          <i className="bi bi-window-stack me-2" />
+          Live Portfolio Showcase
         </button>
       </div>
 
       {tab === 'resume' ? (
         <div className="row g-4">
-          {/* LEFT SIDE: Scraped Detailed CV */}
+          {/* ======================================================== */}
+          {/* LEFT COLUMN: RESUME UPLOAD (TOP) & FULL RESUME VIEW (BELOW) */}
+          {/* ======================================================== */}
           <div className="col-lg-6">
-            {uploading ? (
-              <div className="resume-preview d-flex flex-column align-items-center justify-content-center text-center p-5">
-                <div className="spinner-border text-primary mb-3" style={{ width: '3rem', height: '3rem' }} role="status">
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-                <h5 className="fw-bold">Scraping & Analyzing CV with AI...</h5>
-                <p className="text-muted" style={{ maxWidth: 360 }}>
-                  Extracting your contact details, education, technical skills, projects, and work experience into the database.
-                </p>
+            {/* Small Resume Upload Section at Left Top */}
+            <div className="panel-card mb-3 p-3">
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="fw-bold small text-dark">
+                  <i className="bi bi-cloud-arrow-up text-primary me-2" />
+                  {resume?.fileUrl ? 'Replace Resume' : 'Upload Resume'}
+                </span>
+                <small className="text-muted">PDF, DOC, DOCX, TXT (Max 5MB)</small>
               </div>
-            ) : !resume?.fileUrl && !parsed ? (
-              <div className="resume-preview d-flex flex-column align-items-center justify-content-center text-center p-5">
-                <div
-                  className="rounded-circle d-grid place-items-center mb-3"
-                  style={{ width: 70, height: 70, background: '#eeeaff', color: '#6c5ce7', fontSize: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+
+              <div>
+                <label
+                  className="btn btn-outline-primary btn-sm w-100 py-2 d-flex align-items-center justify-content-center cursor-pointer mb-0 fw-semibold"
+                  style={{ borderRadius: 8, borderStyle: 'dashed', borderWidth: '1.5px' }}
                 >
-                  <i className="bi bi-file-earmark-arrow-up" />
+                  <i className="bi bi-upload me-2" />
+                  {uploading
+                    ? 'Uploading & extracting...'
+                    : resume?.fileUrl
+                    ? 'Choose New File to Replace'
+                    : 'Choose Resume File'}
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt"
+                    onChange={handleResumeUpload}
+                    disabled={uploading}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Below that: Full Uploaded Resume View (No KPIs) */}
+            <div className="panel-card p-3">
+              <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                <div className="overflow-hidden me-2">
+                  <strong className="d-block text-truncate" title={resume?.originalName || 'NA'}>
+                    <i className="bi bi-file-earmark-pdf text-danger me-2" />
+                    {resume?.originalName || 'NA'}
+                  </strong>
+                  <small className="text-muted d-block">
+                    Uploaded: {resume?.uploadedAt ? new Date(resume.uploadedAt).toLocaleDateString() : 'NA'}
+                  </small>
                 </div>
-                <h5 className="fw-bold">No CV Scraped Yet</h5>
-                <p className="text-muted" style={{ maxWidth: 380 }}>
-                  Upload your CV (PDF or DOCX) on the right side. Our AI system will scrape all details, save them to the database, and display your live structured CV here.
-                </p>
-              </div>
-            ) : (
-              <div className="resume-preview" style={{ maxHeight: '820px', overflowY: 'auto' }}>
-                {/* Status Pill */}
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2 py-1">
-                    <i className="bi bi-stars me-1" /> Scraped from CV
-                  </span>
-                  {resume?.uploadedAt && (
-                    <small className="text-muted" style={{ fontSize: '11px' }}>
-                      Updated {new Date(resume.uploadedAt).toLocaleDateString()}
-                    </small>
-                  )}
-                </div>
-
-                {/* Header */}
-                <div className="resume-top pb-2">
-                  <div className="resume-photo" style={{ width: 50, height: 50, fontSize: 18 }}>{initials}</div>
-                  <div>
-                    <h4 className="fw-bold mb-1" style={{ fontSize: '20px' }}>{studentName}</h4>
-                    <span className="text-primary fw-semibold" style={{ fontSize: '12px' }}>
-                      {profile?.department || 'Software & Placement Candidate'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Contact Bar */}
-                <div className="d-flex flex-wrap gap-2 my-2 py-2 border-top border-bottom" style={{ fontSize: '11px' }}>
-                  {(parsed?.personal_info?.email || profile?.email) && (
-                    <span className="text-muted d-flex align-items-center me-2">
-                      <i className="bi bi-envelope me-1 text-primary" />
-                      {parsed?.personal_info?.email || profile?.email}
-                    </span>
-                  )}
-                  {parsed?.personal_info?.phone && (
-                    <span className="text-muted d-flex align-items-center me-2">
-                      <i className="bi bi-telephone me-1 text-primary" />
-                      {parsed.personal_info.phone}
-                    </span>
-                  )}
-                  {parsed?.personal_info?.location && (
-                    <span className="text-muted d-flex align-items-center me-2">
-                      <i className="bi bi-geo-alt me-1 text-primary" />
-                      {parsed.personal_info.location}
-                    </span>
-                  )}
-                  {parsed?.personal_info?.linkedin && (
-                    <a
-                      href={`https://${parsed.personal_info.linkedin.replace(/^https?:\/\//, '')}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="badge bg-light text-primary border text-decoration-none"
-                    >
-                      <i className="bi bi-linkedin me-1" /> LinkedIn
-                    </a>
-                  )}
-                  {parsed?.personal_info?.github && (
-                    <a
-                      href={`https://${parsed.personal_info.github.replace(/^https?:\/\//, '')}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="badge bg-light text-dark border text-decoration-none"
-                    >
-                      <i className="bi bi-github me-1" /> GitHub
-                    </a>
-                  )}
-                </div>
-
-                {/* Professional Summary */}
-                <div className="mt-3">
-                  <h6 className="fw-bold text-uppercase text-secondary" style={{ fontSize: '11px', letterSpacing: '0.8px' }}>
-                    <i className="bi bi-person-lines-fill me-1 text-primary" /> Professional Summary
-                  </h6>
-                  <p className="text-secondary mb-3" style={{ fontSize: '12px', lineHeight: 1.6 }}>
-                    {parsed?.summary || profile?.bio || 'Driven software engineer with hands-on development expertise and strong foundational problem-solving capabilities.'}
-                  </p>
-                </div>
-
-                {/* Technical Skills */}
-                <div className="mt-3">
-                  <h6 className="fw-bold text-uppercase text-secondary mb-2" style={{ fontSize: '11px', letterSpacing: '0.8px' }}>
-                    <i className="bi bi-cpu me-1 text-primary" /> Technical Skills
-                  </h6>
-                  {progLangs.length > 0 && (
-                    <div className="mb-2">
-                      <small className="text-muted fw-bold d-block mb-1" style={{ fontSize: '10px' }}>LANGUAGES</small>
-                      <div className="d-flex flex-wrap gap-1">
-                        {progLangs.map((s: string) => (
-                          <span key={s} className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1" style={{ fontSize: '11px' }}>
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {frameworks.length > 0 && (
-                    <div className="mb-2">
-                      <small className="text-muted fw-bold d-block mb-1" style={{ fontSize: '10px' }}>FRAMEWORKS & LIBRARIES</small>
-                      <div className="d-flex flex-wrap gap-1">
-                        {frameworks.map((s: string) => (
-                          <span key={s} className="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2 py-1" style={{ fontSize: '11px' }}>
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {databases.length > 0 && (
-                    <div className="mb-2">
-                      <small className="text-muted fw-bold d-block mb-1" style={{ fontSize: '10px' }}>DATABASES & STORAGE</small>
-                      <div className="d-flex flex-wrap gap-1">
-                        {databases.map((s: string) => (
-                          <span key={s} className="badge bg-success-subtle text-success-emphasis border border-success-subtle px-2 py-1" style={{ fontSize: '11px' }}>
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {tools.length > 0 && (
-                    <div className="mb-2">
-                      <small className="text-muted fw-bold d-block mb-1" style={{ fontSize: '10px' }}>TOOLS & PLATFORMS</small>
-                      <div className="d-flex flex-wrap gap-1">
-                        {tools.map((s: string) => (
-                          <span key={s} className="badge bg-secondary-subtle text-secondary px-2 py-1" style={{ fontSize: '11px' }}>
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {cloud.length > 0 && (
-                    <div className="mb-2">
-                      <small className="text-muted fw-bold d-block mb-1" style={{ fontSize: '10px' }}>CLOUD</small>
-                      <div className="d-flex flex-wrap gap-1">
-                        {cloud.map((s: string) => (
-                          <span key={s} className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" style={{ fontSize: '11px' }}>
-                            {s}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {allParsedSkills.length === 0 && (
-                    <div className="d-flex flex-wrap gap-1">
-                      {displaySkills.map((s: string) => (
-                        <span key={s} className="badge bg-light text-dark border px-2 py-1" style={{ fontSize: '11px' }}>
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Experience & Internships */}
-                {(parsed?.experience?.length > 0 || parsed?.internships?.length > 0 || (profile?.internships && profile.internships.length > 0)) && (
-                  <div className="mt-3">
-                    <h6 className="fw-bold text-uppercase text-secondary mb-2" style={{ fontSize: '11px', letterSpacing: '0.8px' }}>
-                      <i className="bi bi-briefcase me-1 text-primary" /> Experience & Internships
-                    </h6>
-                    {parsed?.experience && parsed.experience.length > 0 ? (
-                      parsed.experience.map((exp: any, i: number) => (
-                        <div key={i} className="mb-2 pb-2 border-bottom">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <strong style={{ fontSize: '12px' }}>{exp.company}</strong>
-                            <small className="text-muted" style={{ fontSize: '10px' }}>{exp.start_date || exp.location || ''}</small>
-                          </div>
-                          <div className="text-primary" style={{ fontSize: '11px' }}>{exp.job_title}</div>
-                          {exp.description && exp.description.length > 0 && (
-                            <ul className="ps-3 mb-0 text-muted" style={{ fontSize: '11px' }}>
-                              {exp.description.map((bullet: string, bIdx: number) => (
-                                <li key={bIdx}>{bullet}</li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      (profile?.internships || []).map((item: any, idx: number) => (
-                        <div key={idx} className="mb-2 pb-1 border-bottom">
-                          <strong style={{ fontSize: '12px' }}>{item.company}</strong>
-                          <div className="text-muted" style={{ fontSize: '11px' }}>{item.role || 'Intern'}</div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {/* Projects */}
-                {(parsed?.projects?.length > 0 || (profile?.projects && profile.projects.length > 0)) && (
-                  <div className="mt-3">
-                    <h6 className="fw-bold text-uppercase text-secondary mb-2" style={{ fontSize: '11px', letterSpacing: '0.8px' }}>
-                      <i className="bi bi-folder-check me-1 text-primary" /> Projects
-                    </h6>
-                    {(parsed?.projects || profile?.projects || []).map((proj: any, idx: number) => (
-                      <div key={idx} className="mb-2 p-2 bg-light rounded-2 border">
-                        <strong style={{ fontSize: '12px' }}>{proj.name || proj.title}</strong>
-                        {proj.description && (
-                          <p className="text-muted mb-1" style={{ fontSize: '11px', lineHeight: 1.4 }}>
-                            {proj.description}
-                          </p>
-                        )}
-                        {proj.technologies && proj.technologies.length > 0 && (
-                          <div className="d-flex flex-wrap gap-1 mt-1">
-                            {proj.technologies.map((t: string) => (
-                              <span key={t} className="badge bg-white text-secondary border" style={{ fontSize: '9px' }}>
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Education */}
-                {(parsed?.education?.length > 0 || profile?.academic) && (
-                  <div className="mt-3">
-                    <h6 className="fw-bold text-uppercase text-secondary mb-2" style={{ fontSize: '11px', letterSpacing: '0.8px' }}>
-                      <i className="bi bi-mortarboard me-1 text-primary" /> Education
-                    </h6>
-                    {parsed?.education && parsed.education.length > 0 ? (
-                      parsed.education.map((edu: any, idx: number) => (
-                        <div key={idx} className="mb-2">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <strong style={{ fontSize: '12px' }}>{edu.degree}</strong>
-                            {edu.cgpa && <span className="badge bg-success-subtle text-success">{edu.cgpa}</span>}
-                          </div>
-                          <div className="text-muted" style={{ fontSize: '11px' }}>{edu.institution}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="mb-2">
-                        <strong style={{ fontSize: '12px' }}>{profile?.department || 'B.Tech Engineering'}</strong>
-                        <div className="text-muted" style={{ fontSize: '11px' }}>CGPA: {profile?.academic?.cgpa || 8.5}</div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Certifications */}
-                {parsed?.certifications && parsed.certifications.length > 0 && (
-                  <div className="mt-3">
-                    <h6 className="fw-bold text-uppercase text-secondary mb-2" style={{ fontSize: '11px', letterSpacing: '0.8px' }}>
-                      <i className="bi bi-award me-1 text-primary" /> Certifications
-                    </h6>
-                    <ul className="list-unstyled mb-0" style={{ fontSize: '11px' }}>
-                      {parsed.certifications.map((c: string, idx: number) => (
-                        <li key={idx} className="d-flex align-items-center text-secondary mb-1">
-                          <i className="bi bi-patch-check-fill text-success me-2" /> {c}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT SIDE: Resume Health & Upload / Replace Panel */}
-          <div className="col-lg-6">
-            <div className="panel-card">
-              <div className="panel-head">
-                <div>
-                  <h5>Resume Health & Scraper</h5>
-                  <small>AI-powered resume analysis & sync</small>
-                </div>
-                <span className="score-badge large">{resume?.resumeScore || 86}/100</span>
-              </div>
-
-              <div className="resume-score-row">
-                <span>ATS compatibility</span>
-                <strong>{resume?.atsScore || 91}%</strong>
-              </div>
-              <div className="progress mb-3">
-                <div style={{ width: `${resume?.atsScore || 91}%` }} />
-              </div>
-
-              <div className="resume-score-row">
-                <span>Content quality</span>
-                <strong>{resume?.resumeScore ? Math.min(resume.resumeScore + 2, 95) : 84}%</strong>
-              </div>
-              <div className="progress mb-3">
-                <div style={{ width: `${resume?.resumeScore ? Math.min(resume.resumeScore + 2, 95) : 84}%` }} />
-              </div>
-
-              <div className="resume-score-row">
-                <span>Extracted skills count</span>
-                <strong>{displaySkills.length} skills detected</strong>
-              </div>
-              <div className="progress mb-4">
-                <div style={{ width: `${Math.min(displaySkills.length * 8, 100)}%` }} />
-              </div>
-
-              {resume?.fileUrl ? (
-                <div className="mb-3 p-3 bg-light rounded-3 border">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <span className="text-muted" style={{ fontSize: '12px' }}>Active CV in Database:</span>
-                    <strong style={{ fontSize: '12px' }}>{resume.originalName || 'Resume.pdf'}</strong>
-                  </div>
+                {fullResumeUrl ? (
                   <a
-                    href={`http://localhost:5000${resume.fileUrl}`}
+                    href={fullResumeUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="outline-btn w-100 text-center d-block py-2"
+                    className="btn btn-primary btn-sm px-3 fw-semibold text-nowrap"
                   >
-                    <i className="bi bi-box-arrow-up-right me-1" /> Open Uploaded CV Document
+                    <i className="bi bi-box-arrow-up-right me-1" /> Open
                   </a>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
 
-              <label className="upload-zone d-block text-center cursor-pointer p-4 border rounded-3">
-                <i className="bi bi-cloud-arrow-up display-6 text-primary d-block mb-2" />
-                <strong className="d-block">
-                  {uploading ? 'Scraping and Saving...' : resume?.fileUrl ? 'Replace CV & Re-scrape' : 'Upload CV to Scrape'}
-                </strong>
-                <small className="text-muted d-block mt-1">
-                  {resume?.originalName ? `Current: ${resume.originalName} (PDF/DOCX/TXT - Max 5MB)` : 'Supports PDF, DOCX, TXT - Max 5MB'}
-                </small>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onChange={handleResumeUpload}
-                  disabled={uploading}
-                  style={{ display: 'none' }}
-                />
-              </label>
+              {fullResumeUrl ? (
+                <div
+                  className="resume-viewer-frame border rounded-3 overflow-hidden bg-light"
+                  style={{ height: '700px' }}
+                >
+                  <iframe
+                    src={fullResumeUrl}
+                    title="Full Uploaded Resume Document"
+                    className="w-100 h-100 border-0 d-block"
+                  />
+                </div>
+              ) : (
+                <div className="text-center py-5 px-3 border rounded-3 bg-light">
+                  <i className="bi bi-file-earmark-x text-muted display-4 mb-2 d-block" />
+                  <h6 className="fw-bold mb-1">No Resume Uploaded</h6>
+                  <p className="text-muted small mb-0">
+                    Upload your resume using the section above to view the full document here.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ======================================================== */}
+          {/* RIGHT COLUMN: RESUME & JOB DESCRIPTION (JD) MATCHER      */}
+          {/* ======================================================== */}
+          <div className="col-lg-6">
+            <div className="panel-card mb-4">
+              <div className="panel-head mb-3">
+                <div>
+                  <h5 className="mb-0">
+                    <i className="bi bi-stars text-primary me-2" />
+                    Compare Resume with Job Description
+                  </h5>
+                  <small className="text-muted">
+                    Evaluate your resume against target job requirements to reveal keyword gaps
+                  </small>
+                </div>
+              </div>
+
+              <form onSubmit={handleCompareJD}>
+                {/* Target Role */}
+                <div className="mb-3">
+                  <label className="form-label fw-semibold small">Target Role / Designation (optional)</label>
+                  <input
+                    type="text"
+                    className="form-control modern-input"
+                    placeholder="e.g. Full Stack Developer, Data Scientist, DevOps Engineer"
+                    value={targetRole}
+                    onChange={(e) => setTargetRole(e.target.value)}
+                  />
+                </div>
+
+                {/* Resume Source Option */}
+                <div className="mb-3">
+                  <label className="form-label fw-semibold small">Select Resume for Comparison</label>
+                  <div className="d-flex flex-wrap gap-3">
+                    <label className="check mb-0 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="resumeSource"
+                        checked={useExistingResume}
+                        disabled={!resume?.fileUrl}
+                        onChange={() => setUseExistingResume(true)}
+                      />
+                      <span>
+                        Use latest uploaded CV
+                        {resume?.originalName ? ` (${resume.originalName})` : ' (NA)'}
+                      </span>
+                    </label>
+
+                    <label className="check mb-0 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="resumeSource"
+                        checked={!useExistingResume}
+                        onChange={() => setUseExistingResume(false)}
+                      />
+                      <span>Upload a different CV for this JD</span>
+                    </label>
+                  </div>
+
+                  {!useExistingResume && (
+                    <div className="mt-2">
+                      <input
+                        type="file"
+                        className="form-control form-control-sm"
+                        accept=".pdf,.doc,.docx,.txt"
+                        onChange={(e) => setNewJdFile(e.target.files?.[0] || null)}
+                        required={!useExistingResume}
+                      />
+                      <small className="text-muted">Selected file will be evaluated against the JD.</small>
+                    </div>
+                  )}
+                </div>
+
+                {/* Job Description Textarea */}
+                <div className="mb-3">
+                  <label className="form-label fw-semibold small">
+                    Job Description (JD) *
+                  </label>
+                  <textarea
+                    className="form-control modern-input"
+                    rows={6}
+                    placeholder="Paste the target job description, responsibilities, and required qualifications here..."
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    required
+                  />
+                  <div className="d-flex justify-content-between mt-1 text-muted small">
+                    <span>Paste complete text for accurate keyword matching</span>
+                    <span>{jobDescription.length} characters</span>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="primary-btn w-100 justify-content-center"
+                  disabled={comparing}
+                >
+                  {comparing ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                      Analyzing Resume against JD...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-magic me-2" />
+                      Compare Resume with JD
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* JD Match Results Area */}
+              {jdResult && (
+                <div className="mt-4 pt-3 border-top">
+                  <div className="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
+                    <div>
+                      <h6 className="fw-bold mb-0">Match Evaluation Results</h6>
+                      <small className="text-muted">
+                        Evaluated for: <strong>{jdResult.targetRole || 'NA'}</strong> using <em>{jdResult.resumeAnalyzed || 'NA'}</em>
+                      </small>
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="fs-4 fw-bold text-primary">{jdResult.matchScore != null ? `${jdResult.matchScore}%` : 'NA'}</span>
+                      <span className="badge bg-success-subtle text-success">
+                        {jdResult.matchScore >= 80 ? 'High Match' : jdResult.matchScore >= 60 ? 'Moderate Match' : 'Low Match'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Match Progress Bar */}
+                  <div className="progress mb-3" style={{ height: 8 }}>
+                    <div
+                      className="progress-bar bg-primary"
+                      style={{ width: `${jdResult.matchScore ?? 0}%` }}
+                    />
+                  </div>
+
+                  {/* Summary */}
+                  <p className="small text-muted mb-3 bg-light p-2 rounded">
+                    <i className="bi bi-chat-left-quote me-1 text-primary" />
+                    {jdResult.summary || 'NA'}
+                  </p>
+
+                  {/* Matching Skills */}
+                  <div className="mb-3">
+                    <strong className="d-block small text-success mb-1">
+                      <i className="bi bi-check-circle-fill me-1" />
+                      Matching Skills Found in Resume ({jdResult.matchingSkills?.length ?? 0})
+                    </strong>
+                    <div>
+                      {jdResult.matchingSkills?.length ? (
+                        jdResult.matchingSkills.map((skill) => (
+                          <span key={skill} className="jd-skill-pill match">
+                            <i className="bi bi-check2" /> {skill}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-muted small">NA</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Missing Skills */}
+                  <div className="mb-3">
+                    <strong className="d-block small text-warning-emphasis mb-1">
+                      <i className="bi bi-exclamation-triangle-fill me-1 text-warning" />
+                      Missing Skills / Identified Gaps ({jdResult.missingSkills?.length ?? 0})
+                    </strong>
+                    <div>
+                      {jdResult.missingSkills?.length ? (
+                        jdResult.missingSkills.map((skill) => (
+                          <span key={skill} className="jd-skill-pill missing">
+                            <i className="bi bi-plus-lg" /> {skill}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-muted small">NA</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Recommendations */}
+                  <div className="mb-2">
+                    <strong className="d-block small text-dark mb-2">
+                      <i className="bi bi-lightbulb-fill text-warning me-1" />
+                      Key Improvement Recommendations
+                    </strong>
+                    <div>
+                      {jdResult.recommendations?.length ? (
+                        jdResult.recommendations.map((rec, idx) => (
+                          <div key={idx} className="jd-recommendation-item">
+                            {rec}
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-muted small">NA</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {jdResult.isPlaceholder && (
+                    <div className="border border-info-subtle bg-info-subtle p-2 rounded small text-dark mt-3">
+                      <i className="bi bi-code-slash me-1 text-primary" />
+                      <strong>Developer Hook:</strong> This endpoint is wired to <code>POST /api/resume/compare-jd</code> in your Express server, prepared for direct integration with your custom AI intelligence service.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
       ) : (
-        <div className="row g-4">
-          <div className="col-lg-4">
-            <div className="project-card">
-              <div className="project-icon">
-                <i className="bi bi-code-square" />
+        /* ======================================================== */
+        /* PORTFOLIO SECTION: CONFIGURATION & VISUALIZATION        */
+        /* ======================================================== */
+        <div>
+          {/* Portfolio Configuration Bar */}
+          <div className="panel-card mb-4">
+            <div className="row g-3 align-items-center">
+              <div className="col-lg-7">
+                <form onSubmit={handleSavePortfolio} className="d-flex flex-wrap gap-2">
+                  <div className="input-icon flex-grow-1" style={{ minWidth: 260 }}>
+                    <i className="bi bi-globe2" />
+                    <input
+                      type="url"
+                      placeholder="https://yourportfolio.github.io or custom domain"
+                      value={portfolioUrlInput}
+                      onChange={(e) => setPortfolioUrlInput(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="primary-btn btn-sm"
+                    disabled={savingPortfolio}
+                  >
+                    {savingPortfolio ? 'Saving...' : 'Save Website URL'}
+                  </button>
+                </form>
               </div>
-              <span className="status-pill success-pill">Featured</span>
-              <h5>Placement Prediction System</h5>
-              <p>Predict placement readiness using machine learning and real student analytics.</p>
-              <div className="tech-tags">
-                <span>Python</span>
-                <span>ML</span>
-                <span>React</span>
+
+              <div className="col-lg-5 d-flex justify-content-lg-end align-items-center gap-2">
+                {savedPortfolioUrl ? (
+                  <>
+                    {/* Viewport mode switcher */}
+                    <div className="browser-controls d-flex gap-1">
+                      <button
+                        type="button"
+                        className={viewportMode === 'desktop' ? 'active' : ''}
+                        title="Desktop view"
+                        onClick={() => setViewportMode('desktop')}
+                      >
+                        <i className="bi bi-display" />
+                      </button>
+                      <button
+                        type="button"
+                        className={viewportMode === 'tablet' ? 'active' : ''}
+                        title="Tablet view"
+                        onClick={() => setViewportMode('tablet')}
+                      >
+                        <i className="bi bi-tablet" />
+                      </button>
+                      <button
+                        type="button"
+                        className={viewportMode === 'mobile' ? 'active' : ''}
+                        title="Mobile view"
+                        onClick={() => setViewportMode('mobile')}
+                      >
+                        <i className="bi bi-phone" />
+                      </button>
+                      <button
+                        type="button"
+                        title="Reload preview"
+                        onClick={() => setIframeKey((k) => k + 1)}
+                      >
+                        <i className="bi bi-arrow-clockwise" />
+                      </button>
+                    </div>
+
+                    <a
+                      href={savedPortfolioUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="outline-btn btn-sm"
+                    >
+                      <i className="bi bi-box-arrow-up-right me-1" /> Open Live Site
+                    </a>
+                  </>
+                ) : null}
               </div>
             </div>
           </div>
 
-          <div className="col-lg-4">
-            <div className="project-card">
-              <div className="project-icon">
-                <i className="bi bi-bar-chart" />
+          {/* Visualization Area */}
+          {savedPortfolioUrl ? (
+            <div
+              className="browser-frame"
+              style={{
+                maxWidth:
+                  viewportMode === 'mobile'
+                    ? '390px'
+                    : viewportMode === 'tablet'
+                    ? '768px'
+                    : '100%',
+              }}
+            >
+              {/* Browser Bar */}
+              <div className="browser-bar">
+                <div className="browser-dots">
+                  <span className="browser-dot red" />
+                  <span className="browser-dot yellow" />
+                  <span className="browser-dot green" />
+                </div>
+                <div className="browser-url-bar">
+                  <i className="bi bi-lock-fill text-success" />
+                  <span>{savedPortfolioUrl}</span>
+                </div>
+                <a
+                  href={savedPortfolioUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-muted"
+                  title="Open in new window"
+                >
+                  <i className="bi bi-box-arrow-up-right" />
+                </a>
               </div>
-              <span className="status-pill success-pill">Live</span>
-              <h5>Career Analytics Dashboard</h5>
-              <p>Visualize academic, skill, and placement growth in a clean student dashboard.</p>
-              <div className="tech-tags">
-                <span>Charts</span>
-                <span>UI</span>
-                <span>Insights</span>
-              </div>
-            </div>
-          </div>
 
-          <div className="col-lg-4">
-            <div className="project-card">
-              <div className="project-icon">
-                <i className="bi bi-github" />
-              </div>
-              <span className="status-pill">Portfolio</span>
-              <h5>GitHub Portfolio</h5>
-              <p>Organize work samples, repositories, and deployment highlights in one place.</p>
-              <div className="tech-tags">
-                <span>GitHub</span>
-                <span>Projects</span>
-                <span>Showcase</span>
+              {/* Browser Viewport Frame */}
+              <iframe
+                key={iframeKey}
+                src={savedPortfolioUrl}
+                title="Portfolio Website Preview"
+                className="browser-viewport"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+              />
+
+              <div className="bg-light p-2 text-center text-muted small border-top">
+                <i className="bi bi-shield-check text-primary me-1" />
+                Interactive live preview of <strong>{savedPortfolioUrl}</strong>. If your site blocks embedding via CSP/X-Frame-Options, click <strong>Open Live Site</strong>.
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="panel-card text-center py-5">
+              <div
+                className="rounded-circle bg-primary-subtle text-primary d-grid place-items-center mx-auto mb-3"
+                style={{ width: 64, height: 64 }}
+              >
+                <i className="bi bi-window-fullscreen display-6" />
+              </div>
+              <h4>Showcase Your Portfolio Website</h4>
+              <p className="text-muted mx-auto mb-4" style={{ maxWidth: 520 }}>
+                Connect your personal portfolio, GitHub Pages website, or project showcase. Once linked, you can interact with and visualize it directly from this dashboard.
+              </p>
+              <div className="d-flex justify-content-center gap-2 flex-wrap">
+                <span className="badge bg-light text-dark border p-2">
+                  <i className="bi bi-github me-1" /> GitHub Pages
+                </span>
+                <span className="badge bg-light text-dark border p-2">
+                  <i className="bi bi-triangle-fill me-1" /> Vercel
+                </span>
+                <span className="badge bg-light text-dark border p-2">
+                  <i className="bi bi-gem me-1" /> Netlify
+                </span>
+                <span className="badge bg-light text-dark border p-2">
+                  <i className="bi bi-globe me-1" /> Custom Domain
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </Layout>

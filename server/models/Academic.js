@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 
 const academicSchema = new mongoose.Schema(
     {
-
         student: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Student",
@@ -10,8 +9,17 @@ const academicSchema = new mongoose.Schema(
             unique: true
         },
 
-        semesters: [
+        cgpa: {
+            type: Number,
+            default: 0
+        },
 
+        averageAttendance: {
+            type: Number,
+            default: 0
+        },
+
+        semesters: [
             {
                 semester: {
                     type: String,
@@ -39,19 +47,15 @@ const academicSchema = new mongoose.Schema(
                 },
 
                 subjects: [
-
                     {
                         name: String,
                         marks: Number,
                         grade: String,
                         credits: Number
                     }
-
                 ]
             }
-
         ]
-
     },
     {
         timestamps: true

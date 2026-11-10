@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 
 const internshipSchema = new mongoose.Schema(
     {
-
         student: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Student",
@@ -11,38 +10,64 @@ const internshipSchema = new mongoose.Schema(
 
         company: {
             type: String,
-            required: true
+            required: true,
+            trim: true
         },
 
         role: {
             type: String,
-            required: true
+            required: true,
+            trim: true
         },
 
-        description: String,
+        description: {
+            type: String,
+            default: ""
+        },
 
-        startDate: String,
+        startDate: {
+            type: String,
+            default: ""
+        },
 
-        endDate: String,
+        endDate: {
+            type: String,
+            default: ""
+        },
 
-        date: String,
+        date: {
+            type: String,
+            default: ""
+        },
 
         status: {
             type: String,
             default: "Completed"
         },
 
+        certificate: {
+            type: String,
+            default: "",
+            trim: true
+        },
+
+        validated: {
+            type: Boolean,
+            default: false
+        },
+
         skills: [
             String
         ]
-
     },
     {
         timestamps: true
     }
 );
 
-module.exports = mongoose.model(
-    "Internship",
-    internshipSchema
-);
+// Validation logic: must have internship certificate
+internshipSchema.pre("save", function() {
+    this.validated = Boolean(this.certificate && this.certificate.trim());
+});
+
+module.exports = mongoose.model("Internship", internshipSchema);

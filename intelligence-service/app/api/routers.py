@@ -1,8 +1,10 @@
 from typing import List, Optional
 from fastapi import APIRouter, UploadFile, HTTPException, File, Form, Query
+from starlette.concurrency import run_in_threadpool
 
 from schemas.prediction import PredictionRequest, PredictionResponse
 from schemas.resume import ResumeResponse
+from schemas.test_paper import TestPaperRequest, TestPaperResponse
 from schemas.skill_graph import SkillGapAnalysis, SkillGapRequest, SkillGraphData
 from schemas.assessment import (
     AssessmentQuestion,
@@ -11,10 +13,13 @@ from schemas.assessment import (
     SkillProfileRequest,
     SkillProfileResponse,
 )
+from schemas.duplicate import DuplicateCheckRequest, DuplicateCheckResponse
 from services.prediction import PredictionService
 from services.resume import ResumeService
 from services.skill_graph import SkillGraphService
 from services.assessment import AssessmentService, SkillProfilingService
+from services.test_paper import TestPaperService
+from services.duplicate_service import DuplicateDetectionService
 
 router = APIRouter(prefix="/api", tags=["Placement Intelligence"])
 
@@ -113,3 +118,17 @@ async def analyze_skill_gap(request: SkillGapRequest):
         target_role=request.target_role,
         target_job_description=request.target_job_description,
     )
+
+
+@router.post("/test-paper", response_model=List[TestPaperResponse], summary="Generate questions based on given subject")
+async def generate_test_paper(request: TestPaperRequest):
+    return await TestPaperService.generate(request)
+
+
+@router.post(
+    "/duplicate-check",
+    response_model=DuplicateCheckResponse,
+    summary="Check a student record for potential duplicates",
+)
+async def check_duplicate(request: DuplicateCheckRequest) -> DuplicateCheckResponse:
+    return await run_in_threadpool(DuplicateDetectionService.check, request)

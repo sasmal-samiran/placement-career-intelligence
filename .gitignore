@@ -10,6 +10,7 @@ venv/
 test/
 website/
 extra_models/
+
 # Node.js projects
 **/node_modules/
 **/build/

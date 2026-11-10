@@ -1,13 +1,10 @@
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 require("dotenv").config();
 
 const express = require("express");
-
 const cors = require("cors");
-
-const path = require("path");
-
-const fileUpload =
-    require("express-fileupload");
+const fileUpload = require("express-fileupload");
 
 const connectDB =
     require("./db/connection");
@@ -24,22 +21,9 @@ connectDB();
 
 // ---------------- MIDDLEWARE ----------------
 
-const allowedOrigins = [
-    process.env.CLIENT_URL,
-    "http://localhost:5173",
-    "http://127.0.0.1:5173"
-].filter(Boolean);
-
 app.use(
     cors({
-        origin: function (origin, callback) {
-            // allow requests with no origin (like mobile apps, curl, postman)
-            if (!origin) return callback(null, true);
-            if (allowedOrigins.indexOf(origin) !== -1) {
-                return callback(null, true);
-            }
-            return callback(null, true); // permissive for local dev
-        },
+        origin: (origin, callback) => callback(null, true),
         credentials: true
     })
 );
@@ -96,13 +80,6 @@ app.use(
     require("./routes/academic")
 );
 
-
-app.use(
-    "/api/attendance",
-    require("./routes/attendance")
-);
-
-
 app.use(
     "/api/skills",
     require("./routes/skills")
@@ -125,7 +102,6 @@ app.use(
     "/api/certifications",
     require("./routes/certifications")
 );
-
 
 app.use(
     "/api/assessment",
@@ -245,7 +221,7 @@ app.use(
 // ---------------- SERVER ----------------
 
 const PORT =
-    process.env.PORT || 5000;
+    parseInt(process.env.PORT, 10) || 5000;
 
 
 app.listen(

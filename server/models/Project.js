@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 
 const projectSchema = new mongoose.Schema(
     {
-
         student: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Student",
@@ -11,39 +10,65 @@ const projectSchema = new mongoose.Schema(
 
         name: {
             type: String,
-            required: true
+            required: true,
+            trim: true
         },
 
-        description: String,
-
-        desc: String,
-
-        tech: String,
+        description: {
+            type: String,
+            default: ""
+        },
 
         technologies: [
             String
         ],
 
-        githubUrl: String,
+        githubUrl: {
+            type: String,
+            default: "",
+            trim: true
+        },
 
-        liveUrl: String,
+        liveUrl: {
+            type: String,
+            default: "",
+            trim: true
+        },
+
+        documentationUrl: {
+            type: String,
+            default: "",
+            trim: true
+        },
+
+        validated: {
+            type: Boolean,
+            default: false
+        },
 
         status: {
             type: String,
             default: "Completed"
         },
 
-        startDate: String,
+        startDate: {
+            type: String,
+            default: ""
+        },
 
-        endDate: String
-
+        endDate: {
+            type: String,
+            default: ""
+        }
     },
     {
         timestamps: true
     }
 );
 
-module.exports = mongoose.model(
-    "Project",
-    projectSchema
-);
+// Automatic validation check pre-save: must have documentation and github repo
+projectSchema.pre("save", function() {
+    this.validated = Boolean(this.githubUrl && this.documentationUrl);
+});
+
+module.exports = mongoose.model("Project", projectSchema);

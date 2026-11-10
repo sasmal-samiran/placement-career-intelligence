@@ -31,22 +31,48 @@ exports.register = async (req, res) => {
             studentId,
             password,
             phone,
+            dob,
+            branch,
             department,
-            university
+            university,
+            collegeTier,
+            currentYear
         } = req.body;
 
+        const selectedBranch = branch || department;
 
         if (
             !name ||
             !email ||
             !studentId ||
-            !password
+            !password ||
+            !dob ||
+            !selectedBranch ||
+            !university ||
+            !collegeTier ||
+            !currentYear
         ) {
-
             return res.status(400).json({
                 success: false,
                 message:
-                    "Name, email, student ID and password are required"
+                    "Name, email, student ID, password, date of birth, branch, university, college tier, and study year are required"
+            });
+        }
+
+        const dateStr = String(dob).slice(0, 10);
+        const parsedDob = new Date(`${dateStr}T00:00:00.000Z`);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr) || Number.isNaN(parsedDob.getTime()) || parsedDob > new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: "Date of birth must be a valid date in YYYY-MM-DD format and cannot be in the future"
+            });
+        }
+
+        const parsedTier = Number(collegeTier);
+        if (![1, 2, 3].includes(parsedTier)) {
+            return res.status(400).json({
+                success: false,
+                message: "College tier must be 1, 2, or 3"
             });
         }
 
@@ -99,11 +125,19 @@ exports.register = async (req, res) => {
                 password:
                     hashedPassword,
 
-                phone,
+                phone: phone || "",
 
-                department,
+                dob: parsedDob,
 
-                university
+                branch: selectedBranch,
+
+                department: selectedBranch,
+
+                university,
+
+                collegeTier: parsedTier,
+
+                currentYear: String(currentYear)
 
             });
 

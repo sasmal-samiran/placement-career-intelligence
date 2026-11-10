@@ -31,11 +31,6 @@ const resumeSchema = new mongoose.Schema(
         portfolioUrl: {
             type: String,
             default: ""
-        },
-
-        parsedData: {
-            type: mongoose.Schema.Types.Mixed,
-            default: null
         }
 
     },

@@ -2,11 +2,9 @@ const mongoose = require("mongoose");
 
 const connectDB = async () => {
     try {
-        let mongoUri = (process.env.MONGO_URI || "").trim();
-        // Strip trailing semicolons and wrapping quotes safely
-        mongoUri = mongoUri.replace(/;+$/, "").trim();
-        mongoUri = mongoUri.replace(/^["']|["']$/g, "").trim();
-        mongoUri = mongoUri.replace(/;+$/, "").trim();
+        const mongoUri = process.env.MONGO_URI
+            ?.trim()
+            .replace(/^(["'])(.*)\1;?$/, "$2");
 
         await mongoose.connect(mongoUri);
 

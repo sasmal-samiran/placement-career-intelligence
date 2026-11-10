@@ -22,6 +22,9 @@
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.2",
     "typescript": "~5.8.3",
-    "vite": "^7.1.2"
+    "vite": "^7.3.7"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

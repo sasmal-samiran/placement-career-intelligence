@@ -17,20 +17,25 @@ const skillSchema = new mongoose.Schema(
                     type: String,
                     required: true
                 },
-
-                level: {
-                    type: Number,
-                    default: 50
-                },
-
+                
                 category: {
                     type: String,
                     default: "Other"
                 },
 
-                cat: {
+                level: {
                     type: String,
-                    default: "Other"
+                    default: "Beginner"
+                },
+
+                score: {
+                    type: Number,
+                    default: 0
+                },
+
+                validated: {
+                    type: Boolean,
+                    default: false
                 }
             }
 

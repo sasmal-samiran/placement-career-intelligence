@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 import pandas as pd
 import joblib
@@ -92,13 +91,30 @@ class PredictionService:
                 "machinelearning",
                 "machinelearningengineering",
             ],
+            "DS": [
+                "ds",
+                "datascience",
+                "datascienceengineering",
+                "computerscienceandengineeringdatascience",
+                "csedatascience",
+            ],
+            "CS": [
+                "cs",
+                "cybersecurity",
+                "cybersecurityengineering",
+                "computerscienceandengineeringcybersecurity",
+                "csecybersecurity",
+            ],
         }
         done=False
         for branch_name, aliases in branch_aliases.items():
             if branch in aliases:
-                if branch_name != "AIML":
+                if branch_name in ["CSE", "DS", "CS"]:
+                    features["Branch_CSE"] = 1
+                elif branch_name != "AIML":
                     features[f"Branch_{branch_name}"] = 1 
                 done=True
+                break
         if not done:
             raise ValueError(f"Unknown engineering branch: {branch}")
         
@@ -121,7 +137,8 @@ class PredictionService:
             **features
         }])
 
-        model = joblib.load(os.path.join(Path('__file__').resolve().parent.parent,r"models\RandomForestClassifier.joblib"))
+        model_path = Path(__file__).resolve().parents[2] / "models" / "RandomForestClassifier.joblib"
+        model = joblib.load(model_path)
         # pred = model.predict(new_data)
         prob = model.predict_proba(new_data)
 

@@ -34,24 +34,20 @@ const studentSchema = new mongoose.Schema(
             default: ""
         },
 
-        guardian: {
-            type: String,
-            default: ""
-        },
-
-        guardianPhone: {
-            type: String,
-            default: ""
-        },
-
         dob: {
+            type: Date,
+            default: null
+        },
+
+        branch: {
             type: String,
             default: ""
         },
 
-        department: {
-            type: String,
-            default: ""
+        collegeTier: {
+            type: Number,
+            enum: [1, 2, 3],
+            default: 3
         },
 
         university: {
@@ -64,9 +60,10 @@ const studentSchema = new mongoose.Schema(
             default: ""
         },
 
-        address: {
+        targetJobRole: {
             type: String,
-            default: ""
+            default: "",
+            trim: true
         },
 
         profilePhoto: {
@@ -85,204 +82,10 @@ const studentSchema = new mongoose.Schema(
             }
         },
 
-        resume: {
-            url: {
-                type: String,
-                default: ""
-            },
-            visibility: {
-                type: String,
-                default: "public"
-            }
-        },
-
         bio: {
             type: String,
             default: ""
         },
-
-        academic: {
-            currentSemester: {
-                type: String,
-                default: ""
-            },
-            cgpa: {
-                type: Number,
-                default: 0
-            },
-            totalCredits: {
-                type: Number,
-                default: 0
-            },
-            semesters: [
-                {
-                    semester: {
-                        type: String,
-                        required: true
-                    },
-                    sgpa: {
-                        type: Number,
-                        default: 0
-                    },
-                    percentage: {
-                        type: Number,
-                        default: 0
-                    },
-                    attendance: {
-                        type: Number,
-                        default: 0
-                    },
-                    subjects: [
-                        {
-                            name: {
-                                type: String,
-                                required: true
-                            },
-                            marks: {
-                                type: Number,
-                                default: 0
-                            },
-                            grade: {
-                                type: String,
-                                default: ""
-                            },
-                            credits: {
-                                type: Number,
-                                default: 0
-                            }
-                        }
-                    ]
-                }
-            ]
-        },
-
-        skills: [
-            {
-                name: {
-                    type: String,
-                    required: true
-                },
-                category: {
-                    type: String,
-                    default: "Other"
-                },
-                level: {
-                    type: Number,
-                    default: 1
-                },
-                yearsOfExperience: {
-                    type: Number,
-                    default: 0
-                }
-            }
-        ],
-
-        certifications: [
-            {
-                name: {
-                    type: String,
-                    required: true
-                },
-                issuer: {
-                    type: String,
-                    default: ""
-                },
-                issueDate: {
-                    type: String,
-                    default: ""
-                },
-                credentialId: {
-                    type: String,
-                    default: ""
-                },
-                credentialUrl: {
-                    type: String,
-                    default: ""
-                }
-            }
-        ],
-
-        codingProfiles: [
-            {
-                platform: {
-                    type: String,
-                    default: ""
-                },
-                username: {
-                    type: String,
-                    default: ""
-                },
-                url: {
-                    type: String,
-                    default: ""
-                },
-                score: {
-                    type: Number,
-                    default: 0
-                },
-                problemsSolved: {
-                    type: Number,
-                    default: 0
-                },
-                contestRating: {
-                    type: Number,
-                    default: 0
-                },
-                badges: {
-                    type: Number,
-                    default: 0
-                }
-            }
-        ],
-
-        projects: [
-            {
-                title: {
-                    type: String,
-                    required: true
-                },
-                description: {
-                    type: String,
-                    default: ""
-                },
-                techStack: [{
-                    type: String
-                }],
-                githubUrl: {
-                    type: String,
-                    default: ""
-                },
-                liveUrl: {
-                    type: String,
-                    default: ""
-                },
-                role: {
-                    type: String,
-                    default: ""
-                }
-            }
-        ],
-
-        internships: [
-            {
-                company: {
-                    type: String,
-                    default: ""
-                },
-                role: {
-                    type: String,
-                    default: ""
-                },
-                duration: {
-                    type: String,
-                    default: ""
-                },
-                description: {
-                    type: String,
-                    default: ""
-                }
-            }
-        ],
 
         achievements: [
             {

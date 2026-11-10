@@ -14,6 +14,10 @@ const placementPredictionSchema = new mongoose.Schema(
             max: 100,
             required: true
         },
+        prediction: {
+            type: String,
+            enum: ["High", "Moderate", "Low", "Very Low"]
+        },
         factors: [
             {
                 name: {
